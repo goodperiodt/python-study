@@ -1,3 +1,4 @@
+
 '''
 * 내장함수 map()
 
@@ -16,7 +17,7 @@ triple_square(li[2])
 triple_square(li[3])
 triple_square(li[4])
 '''
-
+result = [triple_square for n in li]
 result = list(map(triple_square, li))
 print(result)
 
@@ -42,3 +43,4 @@ n3 = int(input('정수3: '))
 n1, n2, n3 = map(int, input('정수 3개를 공백으로 구분해서 각각 입력하세요: ').split())
 
 print(f'최대값: {max_of_three(n1, n2, n3)}')
+

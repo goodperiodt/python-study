@@ -1,14 +1,40 @@
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-import time as t
 from datetime import datetime
-import codecs
 from bs4 import BeautifulSoup as b
+
+# 엑셀 처리 모듈 임포트
+# pip install xlsxwriter
+import xlsxwriter
+
+# user-agent 정보를 변환해주는 모듈을 import
+# 특정 브라우저로 크롤링을 진행할 때 차단되는 것을 방지
+# pip install fake_useragent
+from fake_useragent import UserAgent
+
+# 이미지를 바이트 단위로 변환 처리 모듈
+from io import BytesIO
+
+# 요청 헤더 정보를 꺼내올 수 있는 묘듈
+import urllib.request as req
+
+
 
 d = datetime.today()
 
-file_path = f'C:/MyWorkspace/upload/알라딘 베스트셀러 1~400위_{d.year}_{d.month}월_{d.day}.txt'
+file_path = f'C:/MyWorkspace/upload/알라딘 베스트셀러 1~400위_{d.year}_{d.month}월_{d.day}.xlsx'
+
+# User Agent 정보 변환 (필수는 아니다.)
+opener = req.build_opener() # 헤더 정보를 초기화
+opener.addheaders = [('User-agent', UserAgent().edge)]
+req.install_opener(opener)
+
+
+# 엑셀 처리 선언
+# Workbook 객체를 생성해서 엑셀 파일을 하나 생성 (생성자의 매개값으로는 저장될 경로를 지정
+workbook = xlsxwriter.Workbook(file_path)
+
 
 option = webdriver.ChromeOptions()
 option.add_experimental_option('detach', True)
@@ -42,8 +68,43 @@ with codecs.open(file_path, 'w', encoding='utf-8') as f:
     # div_list = soup.select('div.ss_book_box')
 
 
-    for div in div_list:
-      book_info = div.find_all('li')
+    for div_ss_book_box in div_list:
+
+      # 이미지
+      img_url = div_ss_book_box.select_one('table div.cover_area div.flipcover_in > a img.front_cover')
+      print(img_url)
+      
+      # 타이틀, 작가, 가격정보를 모두 포함하는 ul부터 지목
+      ul = div_ss_book_box.select_one('div.ss_book_list > ul')
+
+      # 타이틀
+      title = ul.select_one('li > a.bo3')
+
+      # 작가
+      # 위에서 얻은 title의 부모요소 li의 다음 형제 li를 지목 -> 작가, 출판사, 출판일 존재
+
+      author = title.find_parent().fine_next_sibling()
+
+      # 작가쪽 영역 데이터 상세 분해
+      author_data = author.split(' | ')
+      author_name = author_data[0].strip()
+      company = author_data[1].strip()
+      pub_day = author_data[2].strip()
+
+      price = author.find_next_sibling() # 작가 li 다음 형제 요소가 가격 li이다.
+      price_data = price.text.split(', ')[0].strip()
+
+      # 책 상세 정보 페이지 링크
+      # title이라는 변수에 a 태그를 취득해 놓은 상태
+      page_link = title['href']
+
+      try:
+        # 이미지 바이트 변환 처리
+        img_data = BytesIO(req.urlopen(img_url['src']).read())
+        
+
+      except:
+
 
       if book_info[0].find('span', class_='ss_ht1') == None:
         book_title = book_info[0].text
@@ -72,32 +133,4 @@ with codecs.open(file_path, 'w', encoding='utf-8') as f:
     del soup   
     t.sleep(2)
 
-    # if cur_page_num == target_page_num:
-    #  break
-    
-'''
-
-  find(태그이름, class_=?? or id=??): 조건에 맞는 첫 번째 요소를 반환합니다.
-  find_all(태그이름, class_=?? or id=??): 조건에 맞는 모든 요소를 리스트 형태로 반환합니다.
-
-  select(선택자): CSS 선택자를 사용해 요소를 선택합니다.
-  select_one(선택자): CSS 선택자를 사용해 첫 번째 요소를 선택합니다.
-
-  find_parent(): 해당 요소의 부모 요소를 반환합니다. (직속부모)
-  find_parents(): 조건에 맞는 모든 부모 요소를 리스트 형태로 반환합니다. (직속부모를 포함한 조상들)
-
-  find_next_sibling(): 다음 형제 요소를 반환합니다.
-  find_next_siblings(): 조건에 맞는 모든 다음 형제 요소를 리스트 형태로 반환합니다.
-
-  find_previous_sibling(): 이전 형제 요소를 반환합니다.
-  find_previous_siblings(): 조건에 맞는 모든 이전 형제 요소를 리스트 형태로 반환합니다.
-
-  find_next(): 다음 요소를 반환합니다.
-  find_all_next(): 모든 다음 요소를 리스트 형태로 반환합니다.
-
-  find_previou(): 이전 요소를 반환합니다.
-  find_all_previous(): 
-  모든 이전 요소를 리스트 형태로 반환합니다.
-
-'''
 
